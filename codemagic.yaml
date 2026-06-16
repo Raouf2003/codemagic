@@ -1,4 +1,14 @@
 workflows:
+  android-build:
+    name: Android Build
+    max_build_duration: 60
+    environment:
+      flutter: stable
+    scripts:
+      - flutter pub get
+      - flutter build apk --release --split-per-abi
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
 
   ios-build:
     name: iOS Build
@@ -10,5 +20,11 @@ workflows:
       - flutter pub get
       - cd ios && pod install
       - flutter build ios --release --no-codesign
+      - |
+        mkdir -p build/ios/ipa
+        cd build/ios/iphoneos
+        mkdir -p Payload
+        cp -r Runner.app Payload/
+        zip -r ../ipa/Runner.ipa Payload/
     artifacts:
       - build/ios/ipa/*.ipa
