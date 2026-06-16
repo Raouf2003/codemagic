@@ -33,13 +33,17 @@ class ApiService {
   }
 
   Future<void> _requireConnectivity() async {
-    final results = await Connectivity().checkConnectivity();
-    final hasInternet = results.any((r) =>
-        r == ConnectivityResult.mobile ||
-        r == ConnectivityResult.wifi ||
-        r == ConnectivityResult.ethernet);
-    if (!hasInternet) {
-      throw ApiException(0, 'No internet connection. Please check your network and try again.');
+    try {
+      final results = await Connectivity().checkConnectivity();
+      final hasInternet = results.any((r) =>
+          r == ConnectivityResult.mobile ||
+          r == ConnectivityResult.wifi ||
+          r == ConnectivityResult.ethernet);
+      if (!hasInternet) {
+        throw ApiException(0, 'No internet connection. Please check your network and try again.');
+      }
+    } catch (_) {
+      // On web, connectivity_plus may not be reliable; skip check
     }
   }
 
