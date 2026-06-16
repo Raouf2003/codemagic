@@ -8,12 +8,12 @@ workflows:
     scripts:
       - flutter pub get
       - cd ios && pod install
-      - flutter build ios --simulator --no-codesign
+      - flutter build ios --release --no-codesign
       - |
-        mkdir -p build/ios/simulator
-        cd build/ios/iphonesimulator
+        mkdir -p build/ios/ipa
+        cd build/ios/iphoneos
         mkdir -p Payload
         cp -r Runner.app Payload/
-        zip -r ../simulator/Runner.zip Payload/
+        zip -r ../ipa/Runner.ipa Payload/
     artifacts:
-      - build/ios/simulator/*.zip
+      - build/ios/ipa/*.ipa
