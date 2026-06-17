@@ -51,14 +51,16 @@ class FaceService {
       }
 
       final bytes = await file.readAsBytes();
+      var rawImage = img.decodeImage(bytes);
+      if (rawImage == null) return 'Failed to decode raw image';
+
+      if (rawImage.width > 1280 || rawImage.height > 1280) {
+        rawImage = img.copyResize(rawImage, width: rawImage.width > rawImage.height ? 1280 : null, height: rawImage.height >= rawImage.width ? 1280 : null);
+      }
+      debugPrint('[FaceService] Input: ${rawImage.width}x${rawImage.height}');
 
       InputImage inputImage;
       if (defaultTargetPlatform == TargetPlatform.iOS) {
-        final rawImage = img.decodeImage(bytes);
-        if (rawImage == null) return 'Failed to decode raw image';
-
-        debugPrint('[FaceService] Input: ${rawImage.width}x${rawImage.height}');
-
         final bgraBytes = Uint8List(rawImage.width * rawImage.height * 4);
         for (int y = 0; y < rawImage.height; y++) {
           for (int x = 0; x < rawImage.width; x++) {
@@ -70,7 +72,6 @@ class FaceService {
             bgraBytes[offset + 3] = 255;
           }
         }
-
         inputImage = InputImage.fromBytes(
           bytes: bgraBytes,
           metadata: InputImageMetadata(
@@ -81,7 +82,20 @@ class FaceService {
           ),
         );
       } else {
-        inputImage = InputImage.fromFilePath(file.path);
+        try {
+          inputImage = InputImage.fromBytes(
+            bytes: _rgbToNv21(rawImage),
+            metadata: InputImageMetadata(
+              size: Size(rawImage.width.toDouble(), rawImage.height.toDouble()),
+              rotation: InputImageRotation.rotation0deg,
+              format: InputImageFormat.nv21,
+              bytesPerRow: rawImage.width,
+            ),
+          );
+        } catch (e) {
+          debugPrint('[FaceService] NV21 bytes failed, falling back: $e');
+          inputImage = InputImage.fromFilePath(file.path);
+        }
       }
       final faces = await _detector.processImage(inputImage);
       if (faces.isEmpty) {
@@ -271,6 +285,37 @@ class FaceService {
     final norm = sqrt(sumSq);
     if (norm < 1e-10) return v;
     return v.map((x) => x / norm).toList();
+  }
+
+  Uint8List _rgbToNv21(img.Image image) {
+    final w = image.width;
+    final h = image.height;
+    final ySize = w * h;
+    final uvSize = (w * h) ~/ 2;
+    final nv21 = Uint8List(ySize + uvSize);
+
+    int yIndex = 0;
+    int uvIndex = ySize;
+
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        final p = image.getPixel(x, y);
+        final r = p.r.toInt();
+        final g = p.g.toInt();
+        final b = p.b.toInt();
+
+        final yVal = ((66 * r + 129 * g + 25 * b + 128) >> 8) + 16;
+        nv21[yIndex++] = yVal.clamp(0, 255);
+
+        if (y % 2 == 0 && x % 2 == 0) {
+          final u = ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128;
+          final v = ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128;
+          nv21[uvIndex++] = v.clamp(0, 255);
+          nv21[uvIndex++] = u.clamp(0, 255);
+        }
+      }
+    }
+    return nv21;
   }
 
   /// Cosine similarity between two L2-normalized vectors.
