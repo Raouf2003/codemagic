@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -55,7 +56,27 @@ class FaceService {
 
       debugPrint('[FaceService] Input: ${rawImage.width}x${rawImage.height}');
 
-      final inputImage = InputImage.fromFilePath(file.path);
+      final bgraBytes = Uint8List(rawImage.width * rawImage.height * 4);
+      for (int y = 0; y < rawImage.height; y++) {
+        for (int x = 0; x < rawImage.width; x++) {
+          final p = rawImage.getPixel(x, y);
+          final offset = (y * rawImage.width + x) * 4;
+          bgraBytes[offset] = p.b.toInt();
+          bgraBytes[offset + 1] = p.g.toInt();
+          bgraBytes[offset + 2] = p.r.toInt();
+          bgraBytes[offset + 3] = 255;
+        }
+      }
+
+      final inputImage = InputImage.fromBytes(
+        bytes: bgraBytes,
+        metadata: InputImageMetadata(
+          size: Size(rawImage.width.toDouble(), rawImage.height.toDouble()),
+          rotation: InputImageRotation.rotation0deg,
+          format: InputImageFormat.bgra8888,
+          bytesPerRow: rawImage.width * 4,
+        ),
+      );
       final faces = await _detector.processImage(inputImage);
       if (faces.isEmpty) {
         debugPrint('[FaceService] No faces detected');
