@@ -117,7 +117,7 @@ class _ManualAttendancePageState extends State<ManualAttendancePage> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(l10n.manualAttendance),
         actions: [
