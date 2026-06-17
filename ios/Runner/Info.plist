@@ -34,6 +34,10 @@
 		<string>location</string>
 		<string>processing</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera is used to capture your face for attendance verification and enrollment.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone may be accessed when using camera features.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>This app uses Face ID to verify your identity before check-in/out.</string>
 	<key>LSRequiresIPhoneOS</key>
